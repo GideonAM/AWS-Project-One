@@ -139,7 +139,6 @@ Resources:
       TargetType: ip
       VpcId:
         Fn::ImportValue: !Sub "${EnvironmentName}-VPC"
-      HealthCheckPath: /actuator/health
       HealthCheckIntervalSeconds: 30
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
@@ -157,7 +156,6 @@ Resources:
       TargetType: ip
       VpcId:
         Fn::ImportValue: !Sub "${EnvironmentName}-VPC"
-      HealthCheckPath: /actuator/health
       HealthCheckIntervalSeconds: 30
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
