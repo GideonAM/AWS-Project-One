@@ -53,6 +53,16 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: SSMParameterAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameters
+                Resource:
+                  - !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/app/${EnvironmentName}/*'
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -70,6 +80,17 @@ Resources:
           Essential: true
           PortMappings:
             - ContainerPort: !Ref ContainerPort
+          Environment:
+            - Name: AWS_ACCESS_KEY
+              Value: !Sub '{{resolve:ssm:/app/${EnvironmentName}/aws-access-key}}'
+            - Name: AWS_SECRET_KEY
+              Value: !Sub '{{resolve:ssm:/app/${EnvironmentName}/aws-secret-key}}'
+            - Name: AWS_REGION
+              Value: !Sub '{{resolve:ssm:/app/${EnvironmentName}/aws-region}}'
+            - Name: cloud.aws.stack.auto
+              Value: 'false'
+            - Name: S3_BUCKET_NAME
+              Value: !Sub '{{resolve:ssm:/app/${EnvironmentName}/s3-bucket-name}}'
           LogConfiguration:
             LogDriver: awslogs
             Options:
