@@ -3,8 +3,12 @@ name: Deploy Spring Boot to AWS ECR
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'pom.xml'
+      - 'Dockerfile'
+      - 'appspec.yml'
+      - '.github/workflows/build-deploy.yml'
   workflow_dispatch:
 
 jobs:
@@ -46,3 +50,10 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Trigger AWS CodeDeploy (Blue/Green Deployment)
+        run: |
+          aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER }} \
+                               --service ${{ secrets.ECS_SERVICE }} \
+                               --force-new-deployment \
+                               --region ${{ secrets.AWS_REGION }}
