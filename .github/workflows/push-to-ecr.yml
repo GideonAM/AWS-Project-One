@@ -48,38 +48,19 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Trigger CodeDeploy Deployment
         run: |
-          # Get task definition ARN
           TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "${{ secrets.TASK_DEFINITION_FAMILY }}" --query "taskDefinition.taskDefinitionArn" --output text)
-          
-          # Print for debugging
-          echo "Using task definition: $TASK_DEFINITION"
-          
-          # Create the appspec file with proper indentation
-          cat << 'EOF' > deployment-appspec.yml
-version: 0.0
-Resources:
-  - TargetService:
-      Type: AWS::ECS::Service
-      Properties:
-        TaskDefinition: ${TASK_DEFINITION}
-        LoadBalancerInfo:
-          ContainerName: "dev-container"
-          ContainerPort: 8080
-        PlatformVersion: "LATEST"
-  EOF
-  
-  # Verify the appspec content
-  echo "Generated appspec.yml content:"
-  cat deployment-appspec.yml
-  
-  # Deploy using the generated appspec
-  aws deploy create-deployment \
-  --application-name "${{ secrets.CODEDEPLOY_APPLICATION }}" \
-  --deployment-group-name "${{ secrets.CODEDEPLOY_DEPLOYMENT_GROUP }}" \
-  --revision "revisionType=AppSpecContent,appSpecContent={content=$(cat deployment-appspec.yml | base64 -w 0)}" \
-  --description "Deployment triggered by GitHub Actions" \
-  --region "${{ secrets.AWS_REGION }}"
+
+          cp appspec.yml deployment-appspec.yml
+
+          sed -i "s|<TASK_DEFINITION>|$TASK_DEFINITION|g" deployment-appspec.yml
+
+          aws deploy create-deployment \
+            --application-name "${{ secrets.CODEDEPLOY_APPLICATION }}" \
+            --deployment-group-name "${{ secrets.CODEDEPLOY_DEPLOYMENT_GROUP }}" \
+            --revision "revisionType=AppSpecContent,appSpecContent={content=$(cat deployment-appspec.yml | base64 -w 0)}" \
+            --description "Deployment triggered by GitHub Actions" \
+            --region "${{ secrets.AWS_REGION }}"
