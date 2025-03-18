@@ -64,7 +64,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: app-ecs-stack
-          template: infrastructure/ecs-codedeploy.yml
+          template: infrastructure/ecs.yml
           parameter-overrides: >-
             EnvironmentName=app,
             ImageURI=${{ steps.ecr-image.outputs.image }}
