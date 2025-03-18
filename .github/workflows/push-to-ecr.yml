@@ -8,7 +8,7 @@ on:
       - 'pom.xml'
       - 'Dockerfile'
       - 'appspec.yml'
-      - '.github/workflows/build-deploy.yml'
+      - '.github/workflows/push-to-ecr.yml'
 
 jobs:
   build-and-push:
