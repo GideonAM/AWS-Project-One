@@ -2,6 +2,11 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: 'ECS Cluster and CodeDeploy for Blue/Green Deployment'
 
 Parameters:
+  EnvironmentName:
+    Description: Environment name prefix
+    Type: String
+    Default: dev
+
   ImageURI:
     Description: URI of the ECR image to deploy
     Type: String
