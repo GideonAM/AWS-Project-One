@@ -50,9 +50,17 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Trigger AWS CodeDeploy (Blue/Green Deployment)
+      - name: Trigger CodeDeploy Deployment
         run: |
-          aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER }} \
-                               --service ${{ secrets.ECS_SERVICE }} \
-                               --force-new-deployment \
-                               --region ${{ secrets.AWS_REGION }}
+          TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "${{ secrets.TASK_DEFINITION_FAMILY }}" --query "taskDefinition.taskDefinitionArn" --output text)
+
+          cp appspec.yml deployment-appspec.yml
+
+          sed -i "s|<TASK_DEFINITION>|$TASK_DEFINITION|g" deployment-appspec.yml
+
+          aws deploy create-deployment \
+            --application-name "${{ secrets.CODEDEPLOY_APPLICATION }}" \
+            --deployment-group-name "${{ secrets.CODEDEPLOY_DEPLOYMENT_GROUP }}" \
+            --revision "revisionType=AppSpecContent,appSpecContent={content=$(cat deployment-appspec.yml | base64 -w 0)}" \
+            --description "Deployment triggered by GitHub Actions" \
+            --region "${{ secrets.AWS_REGION }}"
