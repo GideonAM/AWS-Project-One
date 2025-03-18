@@ -91,9 +91,9 @@ Resources:
       LoadBalancerAttributes:
         - Key: idle_timeout.timeout_seconds
           Value: '60'
-      Subnets:
-        - Fn::ImportValue: !Sub "${EnvironmentName}-PublicSubnet1"
-        - Fn::ImportValue: !Sub "${EnvironmentName}-PublicSubnet2"
+      Subnets: !Split
+        - ","
+        - Fn::ImportValue: !Sub "${EnvironmentName}-PublicSubnets"
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
@@ -171,9 +171,9 @@ Resources:
           AssignPublicIp: ENABLED
           SecurityGroups:
             - Fn::ImportValue: !Sub "${EnvironmentName}-ECSSecurityGroup"
-          Subnets:
-            - Fn::ImportValue: !Sub "${EnvironmentName}-PrivateSubnet1"
-            - Fn::ImportValue: !Sub "${EnvironmentName}-PrivateSubnet2"
+          Subnets: !Split
+            - ","
+            - Fn::ImportValue: !Sub "${EnvironmentName}-PrivateSubnets"
       LoadBalancers:
         - ContainerName: !Sub ${EnvironmentName}-container
           ContainerPort: !Ref ContainerPort

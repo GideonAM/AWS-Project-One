@@ -147,6 +147,7 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable
       SubnetId: !Ref PrivateSubnet2
 
+  # Security Groups
   ECSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
