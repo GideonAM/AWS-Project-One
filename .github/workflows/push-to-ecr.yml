@@ -1,4 +1,4 @@
-name: Deploy Spring Boot to AWS ECR
+name: Deploy Spring Boot to AWS ECR and Trigger CodeDeploy
 
 on:
   push:
@@ -40,6 +40,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push image to Amazon ECR
+        id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
@@ -48,19 +49,60 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-#      - name: Trigger CodeDeploy Deployment
-#        run: |
-#          TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "${{ secrets.TASK_DEFINITION_FAMILY }}" --query "taskDefinition.taskDefinitionArn" --output text)
-#
-#          cp appspec.yml deployment-appspec.yml
-#
-#          sed -i "s|<TASK_DEFINITION>|$TASK_DEFINITION|g" deployment-appspec.yml
-#
-#          aws deploy create-deployment \
-#            --application-name "${{ secrets.CODEDEPLOY_APPLICATION }}" \
-#            --deployment-group-name "${{ secrets.CODEDEPLOY_DEPLOYMENT_GROUP }}" \
-#            --revision "revisionType=AppSpecContent,appSpecContent={content=$(cat deployment-appspec.yml | base64 -w 0)}" \
-#            --description "Deployment triggered by GitHub Actions" \
-#            --region "${{ secrets.AWS_REGION }}"
+      # Set environment variable for environment name
+      - name: Set environment name
+        id: set-env-name
+        run: |
+          echo "ENVIRONMENT_NAME=app" >> $GITHUB_ENV
+
+      - name: Generate AppSpec file
+        id: generate-appspec
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cat > appspec.yaml << EOF
+          version: 0.0
+          Resources:
+            - TargetService:
+                Type: AWS::ECS::Service
+                Properties:
+                  TaskDefinition: <TASK_DEFINITION>
+                  LoadBalancerInfo:
+                    ContainerName: ${ENVIRONMENT_NAME}-container
+                    ContainerPort: 8080
+          EOF
+          
+          # Get current task definition
+          aws ecs describe-task-definition --task-definition ${ENVIRONMENT_NAME}-task --query "taskDefinition" > task-definition.json
+          
+          # Create new task definition with updated image
+          jq ".containerDefinitions[0].image = \"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\"" task-definition.json > new-task-definition.json
+          
+          # Register new task definition
+          NEW_TASK_DEFINITION=$(aws ecs register-task-definition \
+            --family ${ENVIRONMENT_NAME}-task \
+            --execution-role-arn $(jq -r '.executionRoleArn' task-definition.json) \
+            --network-mode $(jq -r '.networkMode' task-definition.json) \
+            --container-definitions $(jq -c '.containerDefinitions' new-task-definition.json) \
+            --requires-compatibilities $(jq -r '.requiresCompatibilities[]' task-definition.json) \
+            --cpu $(jq -r '.cpu' task-definition.json) \
+            --memory $(jq -r '.memory' task-definition.json) \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+          
+          echo "new_task_definition=$NEW_TASK_DEFINITION" >> $GITHUB_OUTPUT
+          
+          # Update AppSpec with new task definition
+          sed -i "s|<TASK_DEFINITION>|$NEW_TASK_DEFINITION|g" appspec.yaml
+
+      - name: Trigger CodeDeploy Deployment
+        run: |
+          aws deploy create-deployment \
+            --application-name "${ENVIRONMENT_NAME}-deploy-app" \
+            --deployment-group-name "${ENVIRONMENT_NAME}-deploy-group" \
+            --revision "revisionType=AppSpecContent,appSpecContent={content=$(cat appspec.yaml | base64 -w 0)}" \
+            --description "Deployment triggered by GitHub Actions for commit ${{ github.sha }}" \
+            --region "${{ secrets.AWS_REGION }}"
