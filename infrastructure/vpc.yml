@@ -5,7 +5,7 @@ Parameters:
   EnvironmentName:
     Description: Environment name prefix
     Type: String
-    Default: dev
+    Default: app
 
   VpcCIDR:
     Description: CIDR block for the VPC

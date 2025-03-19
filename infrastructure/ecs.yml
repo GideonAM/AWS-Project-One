@@ -5,7 +5,7 @@ Parameters:
   EnvironmentName:
     Description: Environment name prefix
     Type: String
-    Default: dev
+    Default: app
 
   ImageURI:
     Description: URI of the ECR image to deploy
