@@ -55,7 +55,7 @@ jobs:
       - name: Get latest Task Definition ARN
         id: get-task-def
         run: |
-          TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition next-app-task --query "taskDefinition.taskDefinitionArn" --region ${{ secrets.AWS_REGION }} --output text)
+          TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition app-task --query "taskDefinition.taskDefinitionArn" --region ${{ secrets.AWS_REGION }} --output text)
           echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
 
       - name: Create appspec.yaml
