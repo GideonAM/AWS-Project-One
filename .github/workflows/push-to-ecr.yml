@@ -72,11 +72,14 @@ jobs:
                     ContainerPort: 8080
           EOF
 
+      - name: Upload appspec.yaml to S3
+        run: |
+          aws s3 cp appspec.yaml s3://test-bucket-for-aws-project-one/appspec.yaml
+
       - name: Trigger CodeDeploy Deployment
         run: |
           aws deploy create-deployment \
             --application-name app-deploy-app \
             --deployment-group-name app-deploy-group \
-            --revision "revisionType=AppSpecContent,appSpecContent={content=$(cat appspec.yaml | base64 -w 0)}" \
-            --description "Deployment triggered by GitHub Actions for commit ${{ github.sha }}" \
+            --revision 'revisionType=S3,s3Location={bucket="test-bucket-for-aws-project-one",key="appspec.yaml",bundleType="YAML"}' \
             --region "${{ secrets.AWS_REGION }}"
