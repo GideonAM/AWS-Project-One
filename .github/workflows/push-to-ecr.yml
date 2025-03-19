@@ -79,17 +79,7 @@ jobs:
           
           echo "new_task_definition=$NEW_TASK_DEFINITION" >> $GITHUB_OUTPUT
           
-          cat <<EOF > appspec.yaml
-          version: 0.0
-          Resources:
-            - TargetService:
-                Type: AWS::ECS::Service
-                Properties:
-                  TaskDefinition: "$NEW_TASK_DEFINITION"
-                  LoadBalancerInfo:
-                    ContainerName: app-container
-                    ContainerPort: 8080
-          EOF
+          sed "s|<TASK_DEFINITION>|$NEW_TASK_DEFINITION|g" appspec-template.yaml > appspec.yaml
 
       - name: Verify AppSpec file
         run: |
