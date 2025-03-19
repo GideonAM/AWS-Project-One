@@ -76,7 +76,7 @@ jobs:
         run: |
           aws deploy create-deployment \
             --application-name app-deploy-app \
-            --deployment-group-name app-deploy-group" \
-            --revision "revisionType=AppSpecContent,appSpecContent={content=$(cat appspec.yaml | base64)}" \
+            --deployment-group-name app-deploy-group \
+            --revision "revisionType=AppSpecContent,appSpecContent={content=$(cat appspec.yaml | base64 -w 0)}" \
             --description "Deployment triggered by GitHub Actions for commit ${{ github.sha }}" \
-            --region "${{ secrets.AWS_REGION }}
+            --region "${{ secrets.AWS_REGION }}"
