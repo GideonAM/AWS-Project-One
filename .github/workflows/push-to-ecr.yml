@@ -54,6 +54,6 @@ jobs:
         run: |
           aws cloudformation update-stack \
             --stack-name app-ecs-stack \
-            --template-body file://ecs.yaml \
+            --template-body file://infrastructure/ecs.yml \
             --parameters ParameterKey=ImageURI,ParameterValue=${{ steps.build-image.outputs.image }} \
             --capabilities CAPABILITY_IAM
