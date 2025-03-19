@@ -58,30 +58,30 @@ jobs:
           echo "ENVIRONMENT_NAME=app" >> $GITHUB_ENV
 
       - name: Generate AppSpec file
-  id: generate-appspec
-  env:
-    ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-    ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-    IMAGE_TAG: ${{ github.sha }}
-  run: |
-    aws ecs describe-task-definition --task-definition ${ENVIRONMENT_NAME}-task --query "taskDefinition" > task-definition.json
-    
-    jq ".containerDefinitions[0].image = \"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\"" task-definition.json > new-task-definition.json
-    
-    NEW_TASK_DEFINITION=$(aws ecs register-task-definition \
-      --family ${ENVIRONMENT_NAME}-task \
-      --execution-role-arn $(jq -r '.executionRoleArn' task-definition.json) \
-      --network-mode $(jq -r '.networkMode' task-definition.json) \
-      --container-definitions $(jq -c '.containerDefinitions' new-task-definition.json) \
-      --requires-compatibilities $(jq -r '.requiresCompatibilities[]' task-definition.json) \
-      --cpu $(jq -r '.cpu' task-definition.json) \
-      --memory $(jq -r '.memory' task-definition.json) \
-      --query 'taskDefinition.taskDefinitionArn' --output text)
-    
-    echo "new_task_definition=$NEW_TASK_DEFINITION" >> $GITHUB_OUTPUT
-    
-    cp appspec-template.yaml appspec.yaml
-    sed -i "s|<TASK_DEFINITION>|$NEW_TASK_DEFINITION|g" appspec.yaml
+        id: generate-appspec
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          aws ecs describe-task-definition --task-definition ${ENVIRONMENT_NAME}-task --query "taskDefinition" > task-definition.json
+          
+          jq ".containerDefinitions[0].image = \"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\"" task-definition.json > new-task-definition.json
+          
+          NEW_TASK_DEFINITION=$(aws ecs register-task-definition \
+            --family ${ENVIRONMENT_NAME}-task \
+            --execution-role-arn $(jq -r '.executionRoleArn' task-definition.json) \
+            --network-mode $(jq -r '.networkMode' task-definition.json) \
+            --container-definitions $(jq -c '.containerDefinitions' new-task-definition.json) \
+            --requires-compatibilities $(jq -r '.requiresCompatibilities[]' task-definition.json) \
+            --cpu $(jq -r '.cpu' task-definition.json) \
+            --memory $(jq -r '.memory' task-definition.json) \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+          
+          echo "new_task_definition=$NEW_TASK_DEFINITION" >> $GITHUB_OUTPUT
+          
+          cp appspec-template.yaml appspec.yaml
+          sed -i "s|<TASK_DEFINITION>|$NEW_TASK_DEFINITION|g" appspec.yaml
 
       - name: Trigger CodeDeploy Deployment
         run: |
