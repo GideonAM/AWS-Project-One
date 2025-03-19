@@ -83,25 +83,20 @@ jobs:
         id: generate-appspec
         env:
           TASK_DEFINITION: ${{ steps.register-task-def.outputs.new_task_definition }}
-        run: |
-          cat > appspec.yaml << EOF
-version: 0.0
-Resources:
-  - TargetService:
-      Type: AWS::ECS::Service
-      Properties:
-        TaskDefinition: "${{ steps.register-task-def.outputs.new_task_definition }}"
-        LoadBalancerInfo:
-          ContainerName: app-container
-          ContainerPort: 8080
-EOF
-          echo "Appspec file generated:"
-          cat appspec.yaml
-
-      - name: Verify AppSpec file
-        run: |
-          yamllint appspec.yaml || echo "Warning: YAML lint found issues but continuing deployment"
-          cat appspec.yaml
+          run: |
+            cat << EOF > appspec.yaml
+              version: 0.0
+              Resources:
+                - TargetService:
+                    Type: AWS::ECS::Service
+                    Properties:
+                      TaskDefinition: "${{ steps.register-task-def.outputs.new_task_definition }}"
+                      LoadBalancerInfo:
+                        ContainerName: app-container
+                        ContainerPort: 8080
+              EOF
+            echo "Appspec file generated:"
+            cat appspec.yaml
 
       - name: Trigger CodeDeploy Deployment
         run: |
