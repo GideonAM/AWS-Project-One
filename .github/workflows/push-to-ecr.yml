@@ -79,4 +79,4 @@ jobs:
             --deployment-group-name app-deploy-group" \
             --revision "revisionType=AppSpecContent,appSpecContent={content=$(cat appspec.yaml | base64)}" \
             --description "Deployment triggered by GitHub Actions for commit ${{ github.sha }}" \
-            --region "${{ secrets.AWS_REGION }}"
+            --region "${{ secrets.AWS_REGION }}
